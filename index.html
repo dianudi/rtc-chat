@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RTC Chat</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <style>
+      body {
+        background-color: #f0f2f5;
+        color: #1c1e21;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+      }
+
+      .chat-container {
+        width: 100%;
+        max-width: 800px;
+        height: 100%;
+        max-height: 95vh;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border-radius: 1rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .chat-view {
+        display: none;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .chat-view.active {
+        display: flex;
+      }
+
+      .chat-header {
+        background-color: #007bff;
+        color: white;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .chat-messages {
+        flex-grow: 1;
+        padding: 1rem;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .message {
+        padding: 0.5rem 1rem;
+        border-radius: 1.25rem;
+        max-width: 75%;
+        word-wrap: break-word;
+      }
+
+      .message.sent {
+        background-color: #007bff;
+        color: white;
+        align-self: flex-end;
+        border-bottom-right-radius: 0.25rem;
+      }
+
+      .message.received {
+        background-color: #e4e6eb;
+        color: #050505;
+        align-self: flex-start;
+        border-bottom-left-radius: 0.25rem;
+      }
+
+      .message-form {
+        display: flex;
+        padding: 1rem;
+        border-top: 1px solid #ddd;
+      }
+
+      #login-view .card {
+        border: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      #user-list .list-group-item-action:hover {
+        background-color: #f0f2f5;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chat-container">
+      <!-- Login View -->
+      <div id="login-view" class="chat-view active h-100 justify-content-center align-items-center">
+        <div class="card p-4" style="width: 100%; max-width: 25rem">
+          <h3 class="text-center mb-4">Join Chat</h3>
+          <div class="mb-3">
+            <input type="text" class="form-control" id="username" placeholder="Enter your username" />
+          </div>
+          <button id="loginBtn" class="btn btn-primary w-100">Login</button>
+        </div>
+      </div>
+
+      <!-- User List View -->
+      <div id="user-list-view" class="chat-view">
+        <div class="chat-header">
+          <h4 class="mb-0">Online Users</h4>
+          <button id="logoutBtn" class="btn btn-danger btn-sm ms-auto">Logout</button>
+        </div>
+        <div id="user-list" class="list-group list-group-flush overflow-auto"></div>
+      </div>
+
+      <!-- Chat View -->
+      <div id="chat-view" class="chat-view">
+        <div class="chat-header">
+          <button id="backBtn" class="btn btn-light btn-sm">←</button>
+          <h4 id="chat-with-username" class="mb-0"></h4>
+        </div>
+        <div id="chat-messages" class="chat-messages"></div>
+        <form id="message-form" class="message-form">
+          <input type="file" id="imageInput" accept="image/*" class="d-none" />
+          <label for="imageInput" class="btn btn-outline-secondary me-2"><i class="bi bi-image"></i></label>
+          <button id="recordAudioBtn" class="btn btn-outline-danger me-2"><i class="bi bi-mic"></i></button>
+          <button id="stopRecordAudioBtn" class="btn btn-outline-danger me-2 d-none"><i class="bi bi-stop-fill"></i></button>
+          <input type="text" class="form-control" id="chatMessage" placeholder="Type a message..." autocomplete="off" />
+          <button id="sendBtn" type="submit" class="btn btn-primary ms-2">Send</button>
+        </form>
+      </div>
+    </div>
+
+    <audio id="audioPlayer" controls class="d-none"></audio>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+      crossorigin="anonymous"
+    ></script>
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

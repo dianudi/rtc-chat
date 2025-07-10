@@ -1,0 +1,73 @@
+name: Node.js CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    name: Test Build Deploy
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22.x]
+        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          # cache: "yarn"
+      - name: Install Yarn Package Manager
+        run: npm i -g yarn
+      - name: Install dependencies
+        run: yarn --frozen-lockfile
+      # - name: Check Lint & Fix
+      #   run: yarn lint:fix
+      # - name: Test
+      #   run: yarn test
+      - name: Build
+        run: yarn build
+
+      - name: Upload build files
+        uses: Dylan700/sftp-upload-action@latest
+        with:
+          server: ${{ secrets.SSH_SERVER }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 22
+          uploads: |
+            ./ => ./internal/docker_data/rtc-chat/
+          ignore: |
+            *.git
+            */**/*git*
+            .env
+            README.md
+            index.d.ts
+            .gitea
+            .github
+            node_modules
+            src
+            storage
+            .eslintrc.json
+            .gitignore
+            eslint.config.js
+            tsconfig.json
+        if: github.event_name != 'pull_request'
+
+      - name: Build image and deploy on Docker
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.SSH_SERVER }}
+          username: ${{ secrets.SSH_USER }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: 22
+          command_timeout: 60m
+          script: |
+            cd internal/docker_data/rtc-chat
+            echo ${{ secrets.SSH_PASSWORD }} | sudo -S docker compose up -d --build
+        if: github.event_name != 'pull_request'
