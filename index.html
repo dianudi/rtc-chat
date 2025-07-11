@@ -25,6 +25,11 @@
         margin: 0;
       }
 
+      [data-bs-theme="dark"] body {
+        background-color: #121212;
+        color: #dee2e6;
+      }
+
       .chat-container {
         width: 100%;
         max-width: 800px;
@@ -36,6 +41,29 @@
         border-radius: 1rem;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         overflow: hidden;
+      }
+
+      [data-bs-theme="dark"] .chat-container {
+        background: #212529;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+
+      [data-bs-theme="dark"] .message.received {
+        background-color: #343a40;
+        color: #f8f9fa;
+      }
+      
+      [data-bs-theme="dark"] .list-group-item {
+        background-color: #212529;
+        border-color: #495057;
+      }
+
+      [data-bs-theme="dark"] #user-list .list-group-item-action:hover {
+        background-color: #343a40;
+      }
+
+      [data-bs-theme="dark"] .card {
+        background-color: #2b3035;
       }
 
       .chat-view {
@@ -120,6 +148,7 @@
       <div id="user-list-view" class="chat-view">
         <div class="chat-header">
           <h4 class="mb-0">Online Users</h4>
+          <button id="darkModeToggle" class="btn btn-outline-secondary btn-sm ms-2"><i id="darkModeIcon" class="bi bi-moon-stars-fill"></i></button>
           <button id="logoutBtn" class="btn btn-danger btn-sm ms-auto">Logout</button>
         </div>
         <div id="user-list" class="list-group list-group-flush overflow-auto"></div>

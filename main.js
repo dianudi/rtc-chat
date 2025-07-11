@@ -24,6 +24,41 @@ const imageInput = document.getElementById("imageInput");
 const logoutBtn = document.getElementById("logoutBtn");
 const recordAudioBtn = document.getElementById("recordAudioBtn");
 const stopRecordAudioBtn = document.getElementById("stopRecordAudioBtn");
+const darkModeToggle = document.getElementById("darkModeToggle");
+const darkModeIcon = document.getElementById("darkModeIcon");
+
+// Dark Mode Toggle
+const getPreferredTheme = () => {
+  const storedTheme = localStorage.getItem('theme')
+  if (storedTheme) {
+    return storedTheme
+  }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+const setTheme = (theme) => {
+  document.documentElement.setAttribute('data-bs-theme', theme)
+  localStorage.setItem('theme', theme)
+  updateIcon(theme);
+}
+
+const updateIcon = (theme) => {
+  if (theme === 'dark') {
+    darkModeIcon.classList.remove('bi-moon-stars-fill');
+    darkModeIcon.classList.add('bi-sun-fill');
+  } else {
+    darkModeIcon.classList.remove('bi-sun-fill');
+    darkModeIcon.classList.add('bi-moon-stars-fill');
+  }
+}
+
+setTheme(getPreferredTheme())
+
+darkModeToggle.addEventListener("click", () => {
+  const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  setTheme(newTheme);
+});
 const audioPlayer = document.getElementById("audioPlayer");
 
 // Image chunking variables
@@ -76,8 +111,8 @@ function setupDataChannel() {
     sendBtn.disabled = false;
     imageInput.disabled = false;
     recordAudioBtn.disabled = false;
-    dataChannel.send(JSON.stringify({ type: "text", data: `👋 Hello from ${myUsername}!` }));
-    chatMessages.appendChild(createChatBubbleElement(`👋 Hello from ${myUsername}!`, "sent"));
+    // dataChannel.send(JSON.stringify({ type: "text", data: `👋 Hello from ${myUsername}!` }));
+    // chatMessages.appendChild(createChatBubbleElement(`👋 Hello from ${myUsername}!`, "sent"));
   };
 
   dataChannel.onmessage = ({ data }) => {
@@ -102,7 +137,7 @@ function setupDataChannel() {
         receivedImageChunks[msg.fileId].receivedCount++;
 
         if (receivedImageChunks[msg.fileId].receivedCount === receivedImageChunks[msg.fileId].totalChunks) {
-          const fullImageData = receivedImageChunks[msg.fileId].chunks.join('');
+          const fullImageData = receivedImageChunks[msg.fileId].chunks.join("");
           const dataUrl = `data:${receivedImageChunks[msg.fileId].mimeType};base64,${fullImageData}`;
           chatMessages.appendChild(createChatBubbleElement(dataUrl, "received", true));
           delete receivedImageChunks[msg.fileId]; // Clean up
@@ -120,7 +155,7 @@ function setupDataChannel() {
         receivedAudioChunks[msg.fileId].receivedCount++;
 
         if (receivedAudioChunks[msg.fileId].receivedCount === receivedAudioChunks[msg.fileId].totalChunks) {
-          const fullAudioData = receivedAudioChunks[msg.fileId].chunks.join('');
+          const fullAudioData = receivedAudioChunks[msg.fileId].chunks.join("");
           const audioUrl = `data:${receivedAudioChunks[msg.fileId].mimeType};base64,${fullAudioData}`;
           chatMessages.appendChild(createChatBubbleElement(audioUrl, "received", false, true));
           delete receivedAudioChunks[msg.fileId]; // Clean up
@@ -187,7 +222,7 @@ function getColorForUsername(username) {
 function updateUserListUI(onlineUsers) {
   userList.innerHTML = "";
   const usersToDisplay = Array.isArray(onlineUsers) ? onlineUsers : [];
-  const otherUsers = usersToDisplay.filter(user => user !== myUsername);
+  const otherUsers = usersToDisplay.filter((user) => user !== myUsername);
 
   if (otherUsers.length === 0) {
     const item = document.createElement("div");
@@ -248,13 +283,16 @@ ws.onmessage = ({ data }) => {
       showView(chatView);
 
       initializePeerConnection();
-      peerConnection.setRemoteDescription(new RTCSessionDescription(msg.offer)).then(() => {
-        processIceCandidateQueue();
-        return peerConnection.createAnswer();
-      }).then((answer) => {
-        peerConnection.setLocalDescription(answer);
-        ws.send(JSON.stringify({ type: "answer", answer, to: msg.from }));
-      });
+      peerConnection
+        .setRemoteDescription(new RTCSessionDescription(msg.offer))
+        .then(() => {
+          processIceCandidateQueue();
+          return peerConnection.createAnswer();
+        })
+        .then((answer) => {
+          peerConnection.setLocalDescription(answer);
+          ws.send(JSON.stringify({ type: "answer", answer, to: msg.from }));
+        });
       break;
 
     case "answer":
@@ -348,7 +386,7 @@ imageInput.onchange = (e) => {
   if (file && dataChannel && dataChannel.readyState === "open") {
     const reader = new FileReader();
     reader.onload = (event) => {
-      const imageData = event.target.result.split(',')[1]; // Get base64 data without prefix
+      const imageData = event.target.result.split(",")[1]; // Get base64 data without prefix
       const mimeType = file.type;
       const fileId = Date.now().toString(); // Unique ID for this file transfer
 
@@ -356,14 +394,16 @@ imageInput.onchange = (e) => {
         const totalChunks = Math.ceil(imageData.length / CHUNK_SIZE);
         for (let i = 0; i < totalChunks; i++) {
           const chunk = imageData.substring(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-          dataChannel.send(JSON.stringify({
-            type: "image_chunk",
-            fileId: fileId,
-            chunkIndex: i,
-            totalChunks: totalChunks,
-            mimeType: mimeType,
-            data: chunk,
-          }));
+          dataChannel.send(
+            JSON.stringify({
+              type: "image_chunk",
+              fileId: fileId,
+              chunkIndex: i,
+              totalChunks: totalChunks,
+              mimeType: mimeType,
+              data: chunk,
+            })
+          );
         }
       } else {
         // Send as a single message if small enough
@@ -397,7 +437,7 @@ recordAudioBtn.onclick = async () => {
       const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
       const reader = new FileReader();
       reader.onload = (event) => {
-        const audioData = event.target.result.split(',')[1]; // Get base64 data without prefix
+        const audioData = event.target.result.split(",")[1]; // Get base64 data without prefix
         const mimeType = audioBlob.type;
         const fileId = Date.now().toString();
 
@@ -405,14 +445,16 @@ recordAudioBtn.onclick = async () => {
           const totalChunks = Math.ceil(audioData.length / CHUNK_SIZE);
           for (let i = 0; i < totalChunks; i++) {
             const chunk = audioData.substring(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
-            dataChannel.send(JSON.stringify({
-              type: "audio_chunk",
-              fileId: fileId,
-              chunkIndex: i,
-              totalChunks: totalChunks,
-              mimeType: mimeType,
-              data: chunk,
-            }));
+            dataChannel.send(
+              JSON.stringify({
+                type: "audio_chunk",
+                fileId: fileId,
+                chunkIndex: i,
+                totalChunks: totalChunks,
+                mimeType: mimeType,
+                data: chunk,
+              })
+            );
           }
         } else {
           dataChannel.send(JSON.stringify({ type: "audio", data: `data:${mimeType};base64,${audioData}` }));
@@ -422,7 +464,7 @@ recordAudioBtn.onclick = async () => {
       reader.readAsDataURL(audioBlob);
 
       // Stop all tracks in the stream
-      audioStream.getTracks().forEach(track => track.stop());
+      audioStream.getTracks().forEach((track) => track.stop());
     };
 
     mediaRecorder.start();
