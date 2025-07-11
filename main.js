@@ -22,6 +22,7 @@ const usernameInput = document.getElementById("username");
 const chatMessageInput = document.getElementById("chatMessage");
 const imageInput = document.getElementById("imageInput");
 const fileInput = document.getElementById("fileInput");
+const videoInput = document.getElementById("videoInput");
 const logoutBtn = document.getElementById("logoutBtn");
 const recordAudioBtn = document.getElementById("recordAudioBtn");
 const stopRecordAudioBtn = document.getElementById("stopRecordAudioBtn");
@@ -66,6 +67,7 @@ const audioPlayer = document.getElementById("audioPlayer");
 const CHUNK_SIZE = 16 * 1024; // 16KB
 let receivedImageChunks = {};
 let receivedFileChunks = {};
+let receivedVideoChunks = {};
 
 // Voice note variables
 let mediaRecorder;
@@ -81,7 +83,7 @@ function showView(view) {
   view.style.display = "flex"; // Use flex for views that are flex containers
 }
 
-function createChatBubbleElement(content, type = "received", isImage = false, isAudio = false, isFile = false) {
+function createChatBubbleElement(content, type = "received", isImage = false, isAudio = false, isFile = false, isVideo = false) {
   const bubble = document.createElement("div");
   if (type === "system") {
     bubble.classList.add("text-center", "text-muted", "small", "my-2");
@@ -105,6 +107,13 @@ function createChatBubbleElement(content, type = "received", isImage = false, is
       link.textContent = content;
       link.download = content;
       bubble.appendChild(link);
+    } else if (isVideo) {
+      const video = document.createElement("video");
+      video.controls = true;
+      video.src = content;
+      video.style.maxWidth = "100%";
+      video.style.borderRadius = "0.75rem";
+      bubble.appendChild(video);
     } else {
       bubble.textContent = content;
     }
@@ -194,6 +203,26 @@ function setupDataChannel() {
           bubble.appendChild(link);
           chatMessages.appendChild(bubble);
           delete receivedFileChunks[msg.fileId]; // Clean up
+        }
+      } else if (msg.type === "video") {
+        chatMessages.appendChild(createChatBubbleElement(msg.data, "received", false, false, false, true));
+      } else if (msg.type === "video_chunk") {
+        if (!receivedVideoChunks[msg.fileId]) {
+          receivedVideoChunks[msg.fileId] = {
+            chunks: [],
+            receivedCount: 0,
+            totalChunks: msg.totalChunks,
+            mimeType: msg.mimeType,
+          };
+        }
+        receivedVideoChunks[msg.fileId].chunks[msg.chunkIndex] = msg.data;
+        receivedVideoChunks[msg.fileId].receivedCount++;
+
+        if (receivedVideoChunks[msg.fileId].receivedCount === receivedVideoChunks[msg.fileId].totalChunks) {
+          const fullVideoData = receivedVideoChunks[msg.fileId].chunks.join("");
+          const dataUrl = `data:${receivedVideoChunks[msg.fileId].mimeType};base64,${fullVideoData}`;
+          chatMessages.appendChild(createChatBubbleElement(dataUrl, "received", false, false, false, true));
+          delete receivedVideoChunks[msg.fileId]; // Clean up
         }
       } else {
         console.warn("Received unknown message type:", msg);
@@ -490,6 +519,43 @@ fileInput.onchange = (e) => {
     alert("Data channel not open. Please wait for connection or select a user.");
   }
   fileInput.value = ""; // Clear the input so the same file can be selected again
+};
+
+videoInput.onchange = (e) => {
+  const file = e.target.files[0];
+  if (file && dataChannel && dataChannel.readyState === "open") {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const videoData = event.target.result.split(",")[1]; // Get base64 data without prefix
+      const mimeType = file.type;
+      const fileId = Date.now().toString(); // Unique ID for this file transfer
+
+      if (videoData.length > CHUNK_SIZE) {
+        const totalChunks = Math.ceil(videoData.length / CHUNK_SIZE);
+        for (let i = 0; i < totalChunks; i++) {
+          const chunk = videoData.substring(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+          dataChannel.send(
+            JSON.stringify({
+              type: "video_chunk",
+              fileId: fileId,
+              chunkIndex: i,
+              totalChunks: totalChunks,
+              mimeType: mimeType,
+              data: chunk,
+            })
+          );
+        }
+      } else {
+        // Send as a single message if small enough
+        dataChannel.send(JSON.stringify({ type: "video", data: `data:${mimeType};base64,${videoData}` }));
+      }
+      chatMessages.appendChild(createChatBubbleElement(`data:${mimeType};base64,${videoData}`, "sent", false, false, false, true));
+    };
+    reader.readAsDataURL(file);
+  } else if (!dataChannel || dataChannel.readyState !== "open") {
+    alert("Data channel not open. Please wait for connection or select a user.");
+  }
+  videoInput.value = ""; // Clear the input so the same file can be selected again
 };
 
 recordAudioBtn.onclick = async () => {
