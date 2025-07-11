@@ -20,9 +20,13 @@ const sendBtn = document.getElementById("sendBtn");
 const messageForm = document.getElementById("message-form");
 const usernameInput = document.getElementById("username");
 const chatMessageInput = document.getElementById("chatMessage");
+const typingIndicator = document.getElementById("typing-indicator");
 const imageInput = document.getElementById("imageInput");
 const fileInput = document.getElementById("fileInput");
 const videoInput = document.getElementById("videoInput");
+const attachImageBtn = document.getElementById("attachImageBtn");
+const attachFileBtn = document.getElementById("attachFileBtn");
+const attachVideoBtn = document.getElementById("attachVideoBtn");
 const logoutBtn = document.getElementById("logoutBtn");
 const recordAudioBtn = document.getElementById("recordAudioBtn");
 const stopRecordAudioBtn = document.getElementById("stopRecordAudioBtn");
@@ -85,38 +89,47 @@ function showView(view) {
 
 function createChatBubbleElement(content, type = "received", isImage = false, isAudio = false, isFile = false, isVideo = false) {
   const bubble = document.createElement("div");
+  const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   if (type === "system") {
     bubble.classList.add("text-center", "text-muted", "small", "my-2");
     bubble.textContent = content;
   } else {
     bubble.classList.add("message", type === "sent" ? "sent" : "received");
+    const contentDiv = document.createElement('div');
+
     if (isImage) {
       const img = document.createElement("img");
       img.src = content;
       img.style.maxWidth = "100%";
       img.style.borderRadius = "0.75rem";
-      bubble.appendChild(img);
+      contentDiv.appendChild(img);
     } else if (isAudio) {
       const audio = document.createElement("audio");
       audio.controls = true;
       audio.src = content;
-      bubble.appendChild(audio);
+      contentDiv.appendChild(audio);
     } else if (isFile) {
       const link = document.createElement("a");
       link.href = content;
       link.textContent = content;
       link.download = content;
-      bubble.appendChild(link);
+      contentDiv.appendChild(link);
     } else if (isVideo) {
       const video = document.createElement("video");
       video.controls = true;
       video.src = content;
       video.style.maxWidth = "100%";
       video.style.borderRadius = "0.75rem";
-      bubble.appendChild(video);
+      contentDiv.appendChild(video);
     } else {
-      bubble.textContent = content;
+      contentDiv.textContent = content;
     }
+    bubble.appendChild(contentDiv);
+
+    const timestampSpan = document.createElement('span');
+    timestampSpan.className = 'message-timestamp';
+    timestampSpan.textContent = timestamp;
+    bubble.appendChild(timestampSpan);
   }
   return bubble;
 }
@@ -224,6 +237,11 @@ function setupDataChannel() {
           chatMessages.appendChild(createChatBubbleElement(dataUrl, "received", false, false, false, true));
           delete receivedVideoChunks[msg.fileId]; // Clean up
         }
+      } else if (msg.type === 'typing_start') {
+        typingIndicator.textContent = `${targetUsername} is typing...`;
+        typingIndicator.style.display = 'block';
+      } else if (msg.type === 'typing_stop') {
+        typingIndicator.style.display = 'none';
       } else {
         console.warn("Received unknown message type:", msg);
       }
@@ -557,6 +575,24 @@ videoInput.onchange = (e) => {
   }
   videoInput.value = ""; // Clear the input so the same file can be selected again
 };
+
+attachImageBtn.onclick = () => imageInput.click();
+attachFileBtn.onclick = () => fileInput.click();
+attachVideoBtn.onclick = () => videoInput.click();
+
+let typingTimeout;
+chatMessageInput.addEventListener('input', () => {
+  if (dataChannel && dataChannel.readyState === 'open') {
+    if (!typingTimeout) {
+      dataChannel.send(JSON.stringify({ type: 'typing_start' }));
+    }
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+      dataChannel.send(JSON.stringify({ type: 'typing_stop' }));
+      typingTimeout = null;
+    }, 2000); // 2 seconds
+  }
+});
 
 recordAudioBtn.onclick = async () => {
   if (!dataChannel || dataChannel.readyState !== "open") {

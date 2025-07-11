@@ -10,10 +10,7 @@
       integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
       crossorigin="anonymous"
     />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-    />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <style>
       body {
         background-color: #f0f2f5;
@@ -52,7 +49,7 @@
         background-color: #343a40;
         color: #f8f9fa;
       }
-      
+
       [data-bs-theme="dark"] .list-group-item {
         background-color: #212529;
         border-color: #495057;
@@ -64,6 +61,13 @@
 
       [data-bs-theme="dark"] .card {
         background-color: #2b3035;
+      }
+
+      .message-timestamp {
+        font-size: 0.75rem;
+        color: #b1b8be;
+        margin-left: 0.5rem;
+        align-self: flex-end;
       }
 
       .chat-view {
@@ -161,13 +165,27 @@
           <h4 id="chat-with-username" class="mb-0"></h4>
         </div>
         <div id="chat-messages" class="chat-messages"></div>
+        <div id="typing-indicator" class="p-2 text-muted" style="display: none"></div>
         <form id="message-form" class="message-form">
+          <div class="btn-group dropup">
+            <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-paperclip"></i>
+            </button>
+            <ul class="dropdown-menu">
+              <li>
+                <a class="dropdown-item" href="#" id="attachImageBtn"><i class="bi bi-image me-2"></i>Image</a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" id="attachFileBtn"><i class="bi bi-file-earmark me-2"></i>File</a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" id="attachVideoBtn"><i class="bi bi-film me-2"></i>Video</a>
+              </li>
+            </ul>
+          </div>
           <input type="file" id="imageInput" accept="image/*" class="d-none" />
-          <label for="imageInput" class="btn btn-outline-secondary me-2"><i class="bi bi-image"></i></label>
           <input type="file" id="fileInput" class="d-none" />
-          <label for="fileInput" class="btn btn-outline-secondary me-2"><i class="bi bi-paperclip"></i></label>
           <input type="file" id="videoInput" accept="video/*" class="d-none" />
-          <label for="videoInput" class="btn btn-outline-secondary me-2"><i class="bi bi-film"></i></label>
           <button id="recordAudioBtn" class="btn btn-outline-danger me-2"><i class="bi bi-mic"></i></button>
           <button id="stopRecordAudioBtn" class="btn btn-outline-danger me-2 d-none"><i class="bi bi-stop-fill"></i></button>
           <input type="text" class="form-control" id="chatMessage" placeholder="Type a message..." autocomplete="off" />

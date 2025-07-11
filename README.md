@@ -1,6 +1,6 @@
 # RTC Chat
 
-A real-time chat application using WebRTC for peer-to-peer data channels and WebSockets for signaling. This allows users to chat directly with each other, supporting text messages, image sharing, and voice notes.
+A real-time chat application using WebRTC for peer-to-peer data channels and WebSockets for signaling. This allows users to chat directly with each other, supporting text messages, image sharing, voice notes, video sharing, and file sharing.
 
 ## Features
 
@@ -10,6 +10,9 @@ A real-time chat application using WebRTC for peer-to-peer data channels and Web
 - Text messaging.
 - Image sharing (with chunking for large files).
 - Voice note recording and sharing.
+- Video sharing.
+- File shaing.
+- Dark mode UI.
 
 ## Tech Stack
 
