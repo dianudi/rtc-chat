@@ -21,6 +21,7 @@ const messageForm = document.getElementById("message-form");
 const usernameInput = document.getElementById("username");
 const chatMessageInput = document.getElementById("chatMessage");
 const imageInput = document.getElementById("imageInput");
+const fileInput = document.getElementById("fileInput");
 const logoutBtn = document.getElementById("logoutBtn");
 const recordAudioBtn = document.getElementById("recordAudioBtn");
 const stopRecordAudioBtn = document.getElementById("stopRecordAudioBtn");
@@ -64,6 +65,7 @@ const audioPlayer = document.getElementById("audioPlayer");
 // Image chunking variables
 const CHUNK_SIZE = 16 * 1024; // 16KB
 let receivedImageChunks = {};
+let receivedFileChunks = {};
 
 // Voice note variables
 let mediaRecorder;
@@ -79,7 +81,7 @@ function showView(view) {
   view.style.display = "flex"; // Use flex for views that are flex containers
 }
 
-function createChatBubbleElement(content, type = "received", isImage = false, isAudio = false) {
+function createChatBubbleElement(content, type = "received", isImage = false, isAudio = false, isFile = false) {
   const bubble = document.createElement("div");
   if (type === "system") {
     bubble.classList.add("text-center", "text-muted", "small", "my-2");
@@ -97,6 +99,12 @@ function createChatBubbleElement(content, type = "received", isImage = false, is
       audio.controls = true;
       audio.src = content;
       bubble.appendChild(audio);
+    } else if (isFile) {
+      const link = document.createElement("a");
+      link.href = content;
+      link.textContent = content;
+      link.download = content;
+      bubble.appendChild(link);
     } else {
       bubble.textContent = content;
     }
@@ -159,6 +167,33 @@ function setupDataChannel() {
           const audioUrl = `data:${receivedAudioChunks[msg.fileId].mimeType};base64,${fullAudioData}`;
           chatMessages.appendChild(createChatBubbleElement(audioUrl, "received", false, true));
           delete receivedAudioChunks[msg.fileId]; // Clean up
+        }
+      } else if (msg.type === "file") {
+        chatMessages.appendChild(createChatBubbleElement(msg.data, "received", false, false, true));
+      } else if (msg.type === "file_chunk") {
+        if (!receivedFileChunks[msg.fileId]) {
+          receivedFileChunks[msg.fileId] = {
+            chunks: [],
+            receivedCount: 0,
+            totalChunks: msg.totalChunks,
+            mimeType: msg.mimeType,
+            fileName: msg.fileName,
+          };
+        }
+        receivedFileChunks[msg.fileId].chunks[msg.chunkIndex] = msg.data;
+        receivedFileChunks[msg.fileId].receivedCount++;
+
+        if (receivedFileChunks[msg.fileId].receivedCount === receivedFileChunks[msg.fileId].totalChunks) {
+          const fullFileData = receivedFileChunks[msg.fileId].chunks.join("");
+          const dataUrl = `data:${receivedFileChunks[msg.fileId].mimeType};base64,${fullFileData}`;
+          const link = document.createElement("a");
+          link.href = dataUrl;
+          link.download = receivedFileChunks[msg.fileId].fileName;
+          link.textContent = receivedFileChunks[msg.fileId].fileName;
+          const bubble = createChatBubbleElement("", "received", false, false, true);
+          bubble.appendChild(link);
+          chatMessages.appendChild(bubble);
+          delete receivedFileChunks[msg.fileId]; // Clean up
         }
       } else {
         console.warn("Received unknown message type:", msg);
@@ -416,6 +451,45 @@ imageInput.onchange = (e) => {
     alert("Data channel not open. Please wait for connection or select a user.");
   }
   imageInput.value = ""; // Clear the input so the same file can be selected again
+};
+
+fileInput.onchange = (e) => {
+  const file = e.target.files[0];
+  if (file && dataChannel && dataChannel.readyState === "open") {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const fileData = event.target.result.split(",")[1]; // Get base64 data without prefix
+      const mimeType = file.type;
+      const fileName = file.name;
+      const fileId = Date.now().toString(); // Unique ID for this file transfer
+
+      if (fileData.length > CHUNK_SIZE) {
+        const totalChunks = Math.ceil(fileData.length / CHUNK_SIZE);
+        for (let i = 0; i < totalChunks; i++) {
+          const chunk = fileData.substring(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+          dataChannel.send(
+            JSON.stringify({
+              type: "file_chunk",
+              fileId: fileId,
+              fileName: fileName,
+              chunkIndex: i,
+              totalChunks: totalChunks,
+              mimeType: mimeType,
+              data: chunk,
+            })
+          );
+        }
+      } else {
+        // Send as a single message if small enough
+        dataChannel.send(JSON.stringify({ type: "file", data: `data:${mimeType};base64,${fileData}`, fileName: fileName }));
+      }
+      chatMessages.appendChild(createChatBubbleElement(file.name, "sent", false, false, true));
+    };
+    reader.readAsDataURL(file);
+  } else if (!dataChannel || dataChannel.readyState !== "open") {
+    alert("Data channel not open. Please wait for connection or select a user.");
+  }
+  fileInput.value = ""; // Clear the input so the same file can be selected again
 };
 
 recordAudioBtn.onclick = async () => {
